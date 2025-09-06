@@ -36,9 +36,9 @@ export default function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.8 }}
             >
-              <span className="aurora-text">Aurora</span>
+              <span className="aurora-text">Maati</span>
               <br />
-              <span className="text-foreground">Chronicle</span>
+              <span className="text-foreground">World</span>
             </motion.h1>
           </div>
 

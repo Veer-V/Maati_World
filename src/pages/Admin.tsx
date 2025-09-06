@@ -1,83 +1,122 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { 
-  PenTool, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Save, 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  PenTool,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Save,
   X,
   Upload,
-  LogOut
+  LogOut,
+  Loader2,
+  MessageSquare
 } from 'lucide-react'
 import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
 import Navbar from '@/components/Navbar'
 import FloatingParticles from '@/components/FloatingParticles'
-
-interface BlogPost {
-  id: string
-  title: string
-  excerpt: string
-  content: string
-  coverImage: string
-  tags: string[]
-  published: boolean
-  createdAt: string
-}
-
-// Mock blog data for admin
-const mockBlogPosts: BlogPost[] = [
-  {
-    id: '1',
-    title: 'The Future of Digital Storytelling',
-    excerpt: 'Exploring how technology is reshaping the way we tell and consume stories...',
-    content: '<p>Full content here...</p>',
-    coverImage: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=500&h=300&fit=crop',
-    tags: ['Technology', 'Storytelling'],
-    published: true,
-    createdAt: '2024-12-15T10:00:00Z',
-  },
-  {
-    id: '2',
-    title: 'Creative Writing in the AI Era',
-    excerpt: 'How artificial intelligence is becoming a collaborative partner...',
-    content: '<p>Full content here...</p>',
-    coverImage: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=500&h=300&fit=crop',
-    tags: ['AI', 'Writing'],
-    published: false,
-    createdAt: '2024-12-12T10:00:00Z',
-  },
-]
+import { blogOperations, BlogPost, BlogPostInsert } from '@/lib/supabase'
+import { signIn, signOut, getUser } from '@/lib/supabase'
+import { feedbackOperations, Feedback } from '@/lib/feedback-operations'
+import { toast } from 'sonner'
 
 export default function Admin() {
   const [darkMode, setDarkMode] = useState(false)
-  const [posts, setPosts] = useState<BlogPost[]>(mockBlogPosts)
   const [isEditing, setIsEditing] = useState(false)
   const [currentPost, setCurrentPost] = useState<BlogPost | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(true) // Mock authentication
+  const [user, setUser] = useState<any>(null)
 
   // Form state
   const [title, setTitle] = useState('')
   const [excerpt, setExcerpt] = useState('')
   const [content, setContent] = useState('')
   const [coverImage, setCoverImage] = useState('')
+  const [author, setAuthor] = useState('')
   const [tags, setTags] = useState('')
   const [published, setPublished] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
-  // Initialize dark mode
+  // Login state
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+
+  const queryClient = useQueryClient()
+
+  // Fetch blogs from database
+  const { data: posts = [], isLoading, error } = useQuery({
+    queryKey: ['admin-blogs'],
+    queryFn: blogOperations.getAllBlogs,
+    enabled: !!user, // Only fetch if user is authenticated
+  })
+
+  // Fetch feedback from database
+  const { data: feedback = [], isLoading: loadingFeedback } = useQuery({
+    queryKey: ['admin-feedback'],
+    queryFn: feedbackOperations.getAllFeedback,
+    enabled: !!user, // Only fetch if user is authenticated
+  })
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: blogOperations.createBlog,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-blogs'] })
+      toast.success('Blog post created successfully!')
+      setIsEditing(false)
+      resetForm()
+    },
+    onError: (error) => {
+      toast.error('Failed to create blog post')
+      console.error('Create error:', error)
+    }
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string, updates: any }) =>
+      blogOperations.updateBlog(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-blogs'] })
+      toast.success('Blog post updated successfully!')
+      setIsEditing(false)
+      resetForm()
+    },
+    onError: (error) => {
+      toast.error('Failed to update blog post')
+      console.error('Update error:', error)
+    }
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: blogOperations.deleteBlog,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-blogs'] })
+      toast.success('Blog post deleted successfully!')
+    },
+    onError: (error) => {
+      toast.error('Failed to delete blog post')
+      console.error('Delete error:', error)
+    }
+  })
+
+  // Initialize dark mode and check authentication
   useEffect(() => {
     const savedTheme = localStorage.getItem('darkMode')
     if (savedTheme) {
       setDarkMode(JSON.parse(savedTheme))
     }
+
+    // Check if user is authenticated
+    getUser().then(setUser).catch(() => setUser(null))
   }, [])
 
   useEffect(() => {
@@ -89,59 +128,119 @@ export default function Admin() {
     setDarkMode(!darkMode)
   }
 
-  const handleEdit = (post: BlogPost) => {
-    setCurrentPost(post)
-    setTitle(post.title)
-    setExcerpt(post.excerpt)
-    setContent(post.content)
-    setCoverImage(post.coverImage)
-    setTags(post.tags.join(', '))
-    setPublished(post.published)
-    setIsEditing(true)
-  }
-
-  const handleNew = () => {
-    setCurrentPost(null)
+  const resetForm = () => {
     setTitle('')
     setExcerpt('')
     setContent('')
     setCoverImage('')
+    setAuthor('')
     setTags('')
     setPublished(false)
+    setCurrentPost(null)
+  }
+
+  const handleEdit = (post: BlogPost) => {
+    setCurrentPost(post)
+    setTitle(post.title ?? '')
+    setExcerpt(post.excerpt ?? '')
+    setContent(post.content ?? '')
+    setCoverImage(post.cover_image ?? '')
+    setAuthor(post.author ?? '')
+    setTags(post.tags?.join(', ') ?? '')
+    setPublished(post.published ?? false)
     setIsEditing(true)
   }
 
-  const handleSave = () => {
-    const postData: BlogPost = {
-      id: currentPost?.id || Date.now().toString(),
-      title,
-      excerpt,
-      content,
-      coverImage,
-      tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
+  const handleNew = () => {
+    resetForm()
+    setIsEditing(true)
+  }
+
+  const handleSave = async () => {
+    if (!title.trim()) {
+      toast.error('Title is required')
+      return
+    }
+
+    let baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    let slug = baseSlug
+    let counter = 1
+
+    // Check for existing slugs and make unique
+    try {
+      const existingPosts = await blogOperations.getAllBlogs()
+      const existingSlugs = existingPosts
+        .filter(post => currentPost ? post.id !== currentPost.id : true)
+        .map(post => post.slug)
+
+      while (existingSlugs.includes(slug)) {
+        slug = `${baseSlug}-${counter}`
+        counter++
+      }
+    } catch (error) {
+      console.error('Error checking existing slugs:', error)
+      // Continue with base slug if check fails
+    }
+
+    const postData: BlogPostInsert = {
+      title: title.trim(),
+      slug,
+      excerpt: excerpt.trim(),
+      content: content.trim(),
+      cover_image: coverImage.trim(),
+      author: author.trim() || 'Aurora Team',
       published,
-      createdAt: currentPost?.createdAt || new Date().toISOString(),
+      tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
     }
 
     if (currentPost) {
-      setPosts(posts.map(p => p.id === currentPost.id ? postData : p))
+      updateMutation.mutate({ id: currentPost.id, updates: postData })
     } else {
-      setPosts([postData, ...posts])
+      createMutation.mutate(postData)
     }
-
-    setIsEditing(false)
   }
 
   const handleDelete = (id: string) => {
-    setPosts(posts.filter(p => p.id !== id))
+    if (confirm('Are you sure you want to delete this blog post?')) {
+      deleteMutation.mutate(id)
+    }
   }
 
   const handleCancel = () => {
     setIsEditing(false)
-    setCurrentPost(null)
+    resetForm()
   }
 
-  if (!isAuthenticated) {
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      console.log('Attempting login with email:', email)
+      const { data, error } = await signIn(email, password)
+      if (error) {
+        console.error('Supabase signIn error:', error)
+        toast.error(`Login failed: ${error.message}`)
+        return
+      }
+      console.log('Login successful, user:', data.user)
+      setUser(data.user)
+      toast.success('Logged in successfully!')
+    } catch (error) {
+      console.error('Unexpected login error:', error)
+      toast.error('Login failed due to unexpected error')
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      setUser(null)
+      toast.success('Logged out successfully!')
+    } catch (error) {
+      toast.error('Logout failed')
+      console.error('Logout error:', error)
+    }
+  }
+
+  if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md glass-card">
@@ -149,20 +248,39 @@ export default function Admin() {
             <CardTitle className="aurora-text text-2xl">Admin Login</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="admin@aurorachronicle.com" />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" />
-            </div>
-            <Button 
-              className="w-full aurora-gradient text-white"
-              onClick={() => setIsAuthenticated(true)}
-            >
-              Sign In
-            </Button>
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              handleLogin(loginEmail, loginPassword)
+            }}>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="admin@aurorachronicle.com"
+                  autoComplete="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full aurora-gradient text-white"
+              >
+                Sign In
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>
@@ -194,12 +312,19 @@ export default function Admin() {
                 <Plus className="w-4 h-4 mr-2" />
                 New Post
               </Button>
-              <Button variant="outline" onClick={() => setIsAuthenticated(false)}>
+              <Button variant="outline" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </Button>
             </div>
           </motion.div>
+
+          <Tabs defaultValue="posts" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="posts">Blog Posts</TabsTrigger>
+              <TabsTrigger value="feedback">Feedback</TabsTrigger>
+            </TabsList>
+            <TabsContent value="posts">
 
           {isEditing ? (
             /* Editor View */
@@ -239,14 +364,64 @@ export default function Admin() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="coverImage">Cover Image URL</Label>
+                      <Label htmlFor="author">Author</Label>
                       <Input
-                        id="coverImage"
-                        value={coverImage}
-                        onChange={(e) => setCoverImage(e.target.value)}
-                        placeholder="https://example.com/image.jpg"
+                        id="author"
+                        value={author}
+                        onChange={(e) => setAuthor(e.target.value)}
+                        placeholder="Enter author name"
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="coverImage">Cover Image</Label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          try {
+                            setUploading(true)
+                            // Generate unique filename
+                            const fileName = `${Date.now()}-${file.name}`
+
+                            // Convert File to base64 string for ImageKit
+                            const reader = new FileReader()
+                            reader.onload = async () => {
+                              try {
+                                const base64String = reader.result as string
+                                // Upload file to ImageKit storage
+                                const response = await blogOperations.uploadImage(fileName, base64String)
+                                // Use the URL from ImageKit upload response
+                                const imageUrl = (response as any).url
+                                setCoverImage(imageUrl)
+                                toast.success('Image uploaded successfully')
+                              } catch (uploadErr) {
+                                toast.error('Failed to upload image')
+                                console.error('Upload error:', uploadErr)
+                              } finally {
+                                setUploading(false)
+                              }
+                            }
+                            reader.onerror = () => {
+                              toast.error('Failed to read file')
+                              setUploading(false)
+                            }
+                            reader.readAsDataURL(file)
+                          } catch (err) {
+                            toast.error('Unexpected error during image upload')
+                            console.error(err)
+                            setUploading(false)
+                          }
+                        }}
+                    />
+                    {coverImage && (
+                      <div className="mt-2">
+                        <img src={coverImage} alt="Cover preview" className="max-w-full h-32 object-cover rounded" />
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -343,7 +518,7 @@ export default function Admin() {
                             ))}
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            Created: {new Date(post.createdAt).toLocaleDateString()}
+                            Created: {new Date(post.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         
@@ -374,6 +549,69 @@ export default function Admin() {
               ))}
             </motion.div>
           )}
+            </TabsContent>
+            <TabsContent value="feedback">
+              <motion.div
+                className="space-y-6"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+              >
+                {loadingFeedback ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  </div>
+                ) : feedback.length === 0 ? (
+                  <Card className="glass-card">
+                    <CardContent className="p-6 text-center">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground">No feedback received yet.</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  feedback.map((item, index) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                    >
+                      <Card className="glass-card glow-hover">
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <h3 className="text-lg font-semibold">{item.name}</h3>
+                                <Badge variant="outline" className="text-xs">
+                                  {new Date(item.created_at).toLocaleDateString()}
+                                </Badge>
+                              </div>
+                              <p className="text-muted-foreground mb-2">{item.email}</p>
+                              <p className="text-sm">{item.message}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this feedback?')) {
+                                  feedbackOperations.deleteFeedback(item.id)
+                                  queryClient.invalidateQueries({ queryKey: ['admin-feedback'] })
+                                  toast.success('Feedback deleted successfully!')
+                                }
+                              }}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))
+                )}
+              </motion.div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>

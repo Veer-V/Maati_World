@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 import Navbar from '@/components/Navbar'
 import Hero from '@/components/Hero'
 import BlogCard from '@/components/BlogCard-updated'
 import FloatingParticles from '@/components/FloatingParticles'
-import WelcomePopup from '@/components/WelcomePopup'
 import { Button } from "@/components/ui/button"
 import { Search, Filter, Loader2 } from 'lucide-react'
 import { Input } from "@/components/ui/input"
@@ -16,7 +14,6 @@ import { toast } from 'sonner'
 const Index = () => {
   const [darkMode, setDarkMode] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [showWelcomePopup, setShowWelcomePopup] = useState(false)
 
   // Fetch blogs from database
   const { data: blogs = [], isLoading, error, refetch } = useQuery({
@@ -57,19 +54,6 @@ const Index = () => {
       toast.error('Failed to load blogs. Please try again later.')
     }
   }, [error])
-
-  // Show welcome popup on initial load
-  useEffect(() => {
-    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome')
-    if (!hasSeenWelcome) {
-      setShowWelcomePopup(true)
-      localStorage.setItem('hasSeenWelcome', 'true')
-    }
-  }, [])
-
-  const handleLoadMore = () => {
-    toast.info('All stories are already loaded!')
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -141,7 +125,7 @@ const Index = () => {
                   title={blog.title}
                   excerpt={blog.excerpt}
                   coverImage={blog.cover_image ?? ''}
-                  author={blog.author || 'Maati Team'}
+                  author={blog.author || 'Aurora Team'}
 publishedAt={blog.created_at ?? '2025-06-09T00:00:00Z'}
                   readTime={'5 min read'}
                   tags={blog.tags ?? []}
@@ -164,7 +148,6 @@ publishedAt={blog.created_at ?? '2025-06-09T00:00:00Z'}
                 <Button
                   size="lg"
                   className="aurora-gradient text-white hover:opacity-90 glow-hover"
-                  onClick={handleLoadMore}
                 >
                   Load More Stories
                 </Button>
@@ -231,58 +214,6 @@ publishedAt={blog.created_at ?? '2025-06-09T00:00:00Z'}
             </motion.div>
           </div>
         </section>
-
-        {/* Contact Section */}
-        <section id="contact" className="relative py-20 px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="space-y-8"
-            >
-              <div className="space-y-4">
-                <h2 className="text-3xl md:text-4xl font-bold">
-                  <span className="aurora-text">Get In Touch</span>
-                </h2>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  Have questions, feedback, or just want to say hello? We'd love to hear from you.
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-8 justify-center items-center">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Connect With Us</h3>
-                  <div className="flex space-x-8 justify-center text-muted-foreground">
-                    <a href="https://instagram.com/veer._.prince" target="_blank" rel="noopener noreferrer" className="text-pink-600 hover:text-pink-800" aria-label="Instagram">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-8 h-8">
-                        <path d="M7.75 2h8.5A5.75 5.75 0 0122 7.75v8.5A5.75 5.75 0 0116.25 22h-8.5A5.75 5.75 0 012 16.25v-8.5A5.75 5.75 0 017.75 2zm0 1.5A4.25 4.25 0 003.5 7.75v8.5A4.25 4.25 0 007.75 20.5h8.5a4.25 4.25 0 004.25-4.25v-8.5A4.25 4.25 0 0016.25 3.5h-8.5zM12 7a5 5 0 110 10 5 5 0 010-10zm0 1.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7zm4.75-.88a1.12 1.12 0 110 2.25 1.12 1.12 0 010-2.25z"/>
-                      </svg>
-                    </a>
-                    <a href="https://twitter.com/princeofworld45" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700" aria-label="Twitter">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-8 h-8">
-                        <path d="M22.46 6c-.77.35-1.6.58-2.46.69a4.3 4.3 0 001.88-2.37 8.59 8.59 0 01-2.72 1.04 4.28 4.28 0 00-7.3 3.9A12.14 12.14 0 013 4.89a4.28 4.28 0 001.32 5.72 4.27 4.27 0 01-1.94-.54v.05a4.28 4.28 0 003.44 4.2 4.3 4.3 0 01-1.93.07 4.28 4.28 0 003.99 2.97A8.6 8.6 0 012 19.54a12.13 12.13 0 006.56 1.92c7.88 0 12.2-6.53 12.2-12.2 0-.19 0-.37-.01-.56A8.72 8.72 0 0024 5.5a8.3 8.3 0 01-2.54.7z"/>
-                      </svg>
-                    </a>
-                    <a href="mailto:itsjustmeosa@gmail.com" className="text-green-600 hover:text-green-800" aria-label="Email">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-8 h-8">
-                        <path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 2v.01L12 13 4 6.01V6h16zM4 18v-9l8 5 8-5v9H4z"/>
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Quick Contact</h3>
-                  <Button asChild className="aurora-gradient text-white hover:opacity-90">
-                    <a href="/contact">Send us a message</a>
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
       </main>
 
       {/* Footer */}
@@ -307,30 +238,23 @@ publishedAt={blog.created_at ?? '2025-06-09T00:00:00Z'}
             </p>
 
             <div className="flex justify-center space-x-6">
-              <Link to="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                 Privacy
-              </Link>
-              <Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors">
+              </a>
+              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                 Terms
-              </Link>
-              <Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">
+              </a>
+              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                 Contact
-              </Link>
+              </a>
             </div>
 
             <p className="text-sm text-muted-foreground">
-              © 2024 Maati World. All rights reserved.
+              © 2025 Maati World. All rights reserved.
             </p>
           </motion.div>
         </div>
       </footer>
-
-      {/* Welcome Popup */}
-      <WelcomePopup
-        isOpen={showWelcomePopup}
-        onClose={() => setShowWelcomePopup(false)}
-        darkMode={darkMode}
-      />
     </div>
   )
 }

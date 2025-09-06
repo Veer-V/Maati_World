@@ -14,7 +14,133 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      blogs: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          excerpt: string | null
+          content: string | null
+          cover_image: string | null
+          author: string | null
+          published: boolean | null
+          created_at: string | null
+          updated_at: string | null
+          tags: string[] | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug: string
+          excerpt?: string | null
+          content?: string | null
+          cover_image?: string | null
+          author?: string | null
+          published?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          tags?: string[] | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          slug?: string
+          excerpt?: string | null
+          content?: string | null
+          cover_image?: string | null
+          author?: string | null
+          published?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          tags?: string[] | null
+        }
+        Relationships: []
+      }
+      likes: {
+        Row: {
+          id: string
+          blog_id: string
+          user_id: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          blog_id: string
+          user_id?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          blog_id?: string
+          user_id?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "likes_blog_id_fkey"
+            columns: ["blog_id"]
+            isOneToOne: false
+            referencedRelation: "blogs"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      comments: {
+        Row: {
+          id: string
+          blog_id: string
+          user_id: string | null
+          content: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          blog_id: string
+          user_id?: string | null
+          content: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          blog_id?: string
+          user_id?: string | null
+          content?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_blog_id_fkey"
+            columns: ["blog_id"]
+            isOneToOne: false
+            referencedRelation: "blogs"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      feedback: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          message: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          message: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          message?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

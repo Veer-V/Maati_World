@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Moon, Sun, Menu, X, PenTool } from 'lucide-react'
@@ -7,9 +8,10 @@ import { Link } from 'react-router-dom'
 interface NavbarProps {
   darkMode: boolean
   toggleDarkMode: () => void
+  isAdmin?: boolean
 }
 
-export default function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
+export default function Navbar({ darkMode, toggleDarkMode, isAdmin }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
 
@@ -20,6 +22,23 @@ export default function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMenuOpen && !(event.target as Element).closest('.mobile-menu')) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMenuOpen])
 
   return (
     <motion.nav 
@@ -42,41 +61,53 @@ export default function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
                 <PenTool className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold aurora-text">
-                Aurora Chronicle
+                Maati World
               </span>
             </Link>
           </motion.div>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            <motion.a 
-              href="#home" 
+            <motion.div
               className="text-foreground hover:text-primary transition-colors"
               whileHover={{ y: -2 }}
             >
-              Home
-            </motion.a>
-            <motion.a 
-              href="#blogs" 
+              <Link to="/">
+                Home
+              </Link>
+            </motion.div>
+            <motion.div
               className="text-foreground hover:text-primary transition-colors"
               whileHover={{ y: -2 }}
             >
-              Blogs
-            </motion.a>
-            <motion.a 
-              href="#about" 
+              <Link to="/blogs">
+                Blogs
+              </Link>
+            </motion.div>
+            <motion.div
               className="text-foreground hover:text-primary transition-colors"
               whileHover={{ y: -2 }}
             >
-              About
-            </motion.a>
-            <motion.a 
-              href="#contact" 
+              <Link to="/about">
+                About
+              </Link>
+            </motion.div>
+            <motion.div
               className="text-foreground hover:text-primary transition-colors"
               whileHover={{ y: -2 }}
             >
-              Contact
-            </motion.a>
+              <Link to="/contact">
+                Contact
+              </Link>
+            </motion.div>
+            {/* Removed Contact Page link as per user feedback */}
+            {/* <motion.a
+              href="/contact"
+              className="text-foreground hover:text-primary transition-colors"
+              whileHover={{ y: -2 }}
+            >
+              Contact Page
+            </motion.a> */}
             
             <Button
               variant="ghost"
@@ -91,11 +122,14 @@ export default function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
               )}
             </Button>
 
-            <Link to="/admin">
-              <Button className="aurora-gradient text-white hover:opacity-90">
-                Admin Login
-              </Button>
-            </Link>
+            {/* Removed admin button as per user request */}
+            {/* {isAdmin && (
+              <Link to="/admin">
+                <Button className="aurora-gradient text-white hover:opacity-90">
+                  Admin
+                </Button>
+              </Link>
+            )} */}
           </div>
 
           {/* Mobile Menu Button */}
@@ -127,29 +161,35 @@ export default function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <motion.div 
+          <motion.div
             className="md:hidden glass-card mt-2 rounded-xl p-4 space-y-3"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <a href="#home" className="block py-2 text-foreground hover:text-primary transition-colors">
+            <Link to="/" className="block py-2 text-foreground hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
               Home
-            </a>
-            <a href="#blogs" className="block py-2 text-foreground hover:text-primary transition-colors">
-              Blogs
-            </a>
-            <a href="#about" className="block py-2 text-foreground hover:text-primary transition-colors">
-              About
-            </a>
-            <a href="#contact" className="block py-2 text-foreground hover:text-primary transition-colors">
-              Contact
-            </a>
-            <Link to="/admin">
-              <Button className="w-full aurora-gradient text-white hover:opacity-90">
-                Admin Login
-              </Button>
             </Link>
+            <Link to="/blogs" className="block py-2 text-foreground hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
+              Blogs
+            </Link>
+            <Link to="/about" className="block py-2 text-foreground hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
+              About
+            </Link>
+            <Link to="/contact" className="block py-2 text-foreground hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
+              Contact
+            </Link>
+            <Link to="/contact" className="block py-2 text-foreground hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
+              Contact Page
+            </Link>
+            {/* Removed admin button as per user request */}
+            {/* {isAdmin && (
+              <Link to="/admin">
+                <Button className="w-full aurora-gradient text-white hover:opacity-90">
+                  Admin
+                </Button>
+              </Link>
+            )} */}
           </motion.div>
         )}
       </div>
